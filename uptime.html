@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>업타임 표시 API</title>
+<title>Twitch Stream Uptime</title>
 
 <script type="text/javascript"
   src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -11,17 +11,42 @@
 function getQueryVariable(variable){
        var query = window.location.search.substring(1);
        var vars = query.split("&");
-       for (var i=0;i<vars.length;i++) {
-               var pair = vars[i].split("=");
-               if(pair[0] == variable){return pair[1];}
+       for (var i=0;i<vars.length;i++){
+			var pair = vars[i].split("=");
+			if(pair[0] == variable){return pair[1];}
        }
        return(false);
+}
+
+//오프라인 메시지 기본값 지정하고 입력됐으면 받아오기
+var uptime="Channel is not live."
+if(getQueryVariable("offline")!=false){
+	uptime=decodeURI(getQueryVariable("offline"));
+}
+
+//단위 표시 범위 기본값 지정하고 입력됐으면 받아오기
+var unitCount=4;
+if(getQueryVariable("units")!=false){
+	unitCount=getQueryVariable("units");
+}
+
+//시간 단위 기본값 지정하고 입력됐으면 받아오기
+var unit=[" day"," hour"," minute"," second"," days"," hours"," minutes"," seconds"];
+if(getQueryVariable("customunit")!=false){
+	var unitCache=getQueryVariable("customunit").split('-');
+	for(var i=0;i<4;i++){
+		if(unitCache[i+4]==undefined) unit[i+4]=decodeURI(unitCache[i]);
+		else unit[i+4]=decodeURI(unitCache[i+4]);
+	}
+	for(var i=0;i<4;i++){
+		unit[i]=decodeURI(unitCache[i]);	
+	}
 }
 
 $(document).ready(function(){
 	//쿼리 값으로 유저네임 미입력 시 사용례 출력
 	if(getQueryVariable("username")==false){
-	$("#output").html("사용례:".bold()+" ~/uptime/ko.html?username="+"아이디".italics());
+		$("#output").html("Usage: ~/uptime.html?username={CHANNEL}");
 	}
 	//쿼리 값으로 유저네임 입력했을 경우
 	else{
@@ -34,7 +59,7 @@ $(document).ready(function(){
 			$.getJSON(url,function(dataOut){
 				//스트림 오프라인일 경우 메시지 출력
 				if(dataOut.stream===null){
-					$("#output").html("현재 방송 중이지 않습니다.");
+					$("#output").html(uptime);
 				}
 				//스트림 온라인일 경우 created_at과 현재 시간으로 업타임 계산
 				else{
@@ -46,12 +71,24 @@ $(document).ready(function(){
 					var diffHour = timeGap.getHours();
 					var diffMin  = timeGap.getMinutes();
 					var diffSec  = timeGap.getSeconds();
-					var uptime = "현재"
-					if(diffDay>0) uptime+=" "+diffDay+"일";
-					if(diffHour>0) uptime+=" "+diffHour+"시간";
-					if(diffMin>0) uptime+=" "+diffMin+"분";
-					if(diffSec>0) uptime+=" "+diffSec+"초";
-					uptime+=" 동안 방송 중입니다.";
+					uptime = ""
+					if(diffDay>0 & unitCount>=1){
+						if(diffDay==1) uptime+=" "+diffDay+unit[0];
+						else uptime+=" "+diffDay+unit[4];
+					}
+					if(diffHour>0 & unitCount>=2){
+						if(diffHour==1) uptime+=" "+diffHour+unit[1];
+						else uptime+=" "+diffHour+unit[5];
+					}
+					if(diffMin>0 & unitCount>=3)
+					{
+						if(diffMin==1) uptime+=" "+diffMin+unit[2];
+						else uptime+=" "+diffMin+unit[6];
+					}
+					if(diffSec>0 & unitCount>=4){
+						if(diffSec==1) uptime+=" "+diffSec+unit[3];
+						else uptime+=" "+diffSec+unit[7];
+					}
 					$("#output").html(uptime);
 				}
 			})
@@ -62,6 +99,6 @@ $(document).ready(function(){
 </script>
 </head>
 <body>
-<h id="output"></h>
+<p id="output"></p>
 </body>
 </html>
